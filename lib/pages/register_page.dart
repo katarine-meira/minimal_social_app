@@ -1,20 +1,78 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_crud/components/my_button.dart';
 import 'package:flutter_crud/components/my_textfield.dart';
+import 'package:flutter_crud/helper/helper_functions.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   final void Function()? onTap;
 
-  RegisterPage({super.key, required this.onTap});
+  const RegisterPage({super.key, required this.onTap});
 
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   //controlador de edição de texto
   final TextEditingController usernameController = TextEditingController();
+
   final TextEditingController emailController = TextEditingController();
+
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPwControler = TextEditingController();
+
+  final TextEditingController confirmPwController = TextEditingController();
 
   //register method
-  void register() {}
+  void registerUser() async {
+    //circulo de carregamento
+    showDialog(
+      context: context, 
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    //verificar se as senhas correspondem
+    if (passwordController.text != confirmPwController.text) {
+      //abrir circulo de carregamento
+      Navigator.pop(context);
+      //mostrar erro
+      displayMessageToUser("Passwords don't match!", context);
+    }
+    else {
+      try {
+        //criar o user
+        UserCredential? userCredential = 
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: emailController.text, 
+            password: passwordController.text
+          );
+        
+        //criar um user e adicionar ao firestore
+        createUserDocument(userCredential);
+
+        if (!mounted) return;
+        Navigator.pop(context);
+      }on FirebaseAuthException catch (e) {
+        Navigator.pop(context);
+        displayMessageToUser(e.code, context);
+      }
+    }
+  }
+
+  //metodo de criar usuário
+  Future<void> createUserDocument(UserCredential? userCredential) async {
+    if (userCredential != null && userCredential.user != null) {
+      await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userCredential.user!.email)
+        .set({
+          'email': userCredential.user!.email,
+          'username': usernameController.text,
+        });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +130,7 @@ class RegisterPage extends StatelessWidget {
               MyTextfield(
                 hintText: 'Confirm Password',
                 obscureText: true,
-                controller: confirmPwControler,
+                controller: confirmPwController,
               ),
 
               const SizedBox(height: 10),
@@ -92,7 +150,7 @@ class RegisterPage extends StatelessWidget {
               const SizedBox(height: 25),
 
               //register in button
-              MyButton(text: "Register", onTap: register),
+              MyButton(text: "Register", onTap: registerUser),
 
               const SizedBox(height: 25),
 
@@ -106,7 +164,7 @@ class RegisterPage extends StatelessWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: onTap,
+                    onTap: widget.onTap,
                     child: Text(" Login here",
                       style: TextStyle(
                         fontWeight: FontWeight.bold
