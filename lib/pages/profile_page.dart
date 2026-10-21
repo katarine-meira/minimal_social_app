@@ -39,11 +39,19 @@ class ProfilePage extends StatelessWidget {
             Map<String, dynamic>? user = snapshot.data!.data();
             return Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-
-                  MyBackButton(),
-
+                   const Padding(
+                    padding: EdgeInsets.only(
+                      top: 50.0,
+                      left: 25,
+                    ),
+                    child: Row(
+                      children: [
+                        MyBackButton(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
                   //profile pic
                   Container(
                     decoration: BoxDecoration(
